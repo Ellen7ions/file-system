@@ -15,10 +15,11 @@ char *fs_cmds[] = {
         (char *) "vim",
         (char *) "cat",
         (char *) "upload",
-        (char *) "download"
+        (char *) "download",
+        (char *) "tree"
 };
 
-int cmds_len = 15;
+int cmds_len = 16;
 
 int (*sys_cmds[])(const int *argc, char **argv) = {
         cmd_mkdir,
@@ -36,6 +37,7 @@ int (*sys_cmds[])(const int *argc, char **argv) = {
         cmd_cat,
         cmd_upload,
         cmd_download,
+        cmd_tree
 };
 
 int cmd_mkdir(const int *argc, char **argv) {
@@ -159,18 +161,24 @@ int cmd_reload(const int *argc, char **argv) {
 
 int cmd_menu(const int *argc, char **argv) {
     if (*argc == 0) return -1;
-#define SHOW_LINE(CMD, INTRO) printf(#CMD"\t\t\t"#INTRO"\n")
-    SHOW_LINE([mkdir], Make a directory.);
-    SHOW_LINE([rmdir], Remove a directory.);
-    SHOW_LINE([cd], Cd a directory.);
-    SHOW_LINE([ls], List a directory.);
-    SHOW_LINE([pwd], Print path info.);
-    SHOW_LINE([creat], Create a file.);
-    SHOW_LINE([rm], Remove a file.);
-    SHOW_LINE([save], Save a file tree.);
-    SHOW_LINE([reload], Reload a file tree.);
-    SHOW_LINE([menu], Help.);
-    SHOW_LINE([quit], Quitmenu.);
+#define SHOW_LINE(CMD, INTRO) printf("%-15s\t%-60s\n", #CMD, #INTRO)
+    SHOW_LINE( ,  );
+    SHOW_LINE([rmdir], Remove a directory.(rmdir dir_name));
+    SHOW_LINE([mkdir], Make a directory.(mkdir dir_name));
+    SHOW_LINE([cd], Cd a directory.(cd dir_name));
+    SHOW_LINE([ls], List a directory.(ls));
+    SHOW_LINE([pwd], Print path info.(pwd));
+    SHOW_LINE([creat], Create a file.(creat file_name));
+    SHOW_LINE([rm], Remove a file.(rm file_name));
+    // SHOW_LINE([save], Save a file tree.());
+    // SHOW_LINE([reload], Reload a file tree.);
+    SHOW_LINE([vim], Eidt a file.(vim file_name));
+    SHOW_LINE([cat], Show a file.(cat file_name));
+    SHOW_LINE([upload], Upload a file.(upload file_name));
+    SHOW_LINE([download], Download a file.(download file_name target_name));
+    SHOW_LINE([quit], Quit.(quit));
+    SHOW_LINE([tree], Display file tree.(tree));
+    SHOW_LINE([menu], Help.(menu));
 #undef SHOW_LINE
     return 0;
 }
@@ -273,4 +281,10 @@ int cmd_download(const int *argc, char **argv) {
             break;
     }
     return flag;
+}
+
+int cmd_tree(const int *argc, char **argv) {
+    printf("%s\n", file_system->cur_node->file_name);
+    fs_tree(file_system->cur_node, 0);
+    return 0;
 }

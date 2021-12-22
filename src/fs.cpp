@@ -133,10 +133,12 @@ int fs_creat(const char *path, const char *file_name, uint32_t file_size) {
         if (strcmp(p->file_name, file_name) == 0) return 1;
         p = p->sibling;
     }
-    ftn_add_node(path_node, ftn_new(file_name, 'f', nullptr));
+    FileTreeNode *newNode = ftn_new(file_name, 'f', nullptr);
+    ftn_add_node(path_node, newNode);
 
-    file_system->disk->makeFile(path_node->index_i, (char *) file_name, file_size,
-                                strcmp(path_node->file_name, "/") == 0);
+    uint32_t index = file_system->disk->makeFile(path_node->index_i, (char *) file_name, file_size,
+                                                 strcmp(path_node->file_name, "/") == 0);
+    newNode->index_i = index;
     return 0;
 }
 
@@ -280,7 +282,7 @@ int fs_cat(const char *path, const char *file_name) {
             file_system->disk->fileBlockManager->readBlock(indexItem.psyAddr[i], (j % BLOCK_SIZE),
                                                            buffer + (j % BLOCK_SIZE), 1);
             // fwrite(buffer + (j % BLOCK_SIZE), 1, 1, output_file);
-            putchar(buffer[j %  BLOCK_SIZE]);
+            putchar(buffer[j % BLOCK_SIZE]);
             j++;
             if (j % BLOCK_SIZE == 0) break;
         }
@@ -337,12 +339,15 @@ int fs_upload(const char *file_name) {
         p = p->sibling;
     }
 
-    ftn_add_node(file_system->cur_node, ftn_new(file_name, 'f', nullptr));
+    FileTreeNode *newNode = ftn_new(file_name, 'f', nullptr);
+    ftn_add_node(file_system->cur_node, newNode);
 
     uint32_t file_size = get_file_size(file);
     uint32_t fileIndex = file_system->disk->makeFile(file_system->cur_node->index_i, (char *) file_name, file_size,
                                                      strcmp(file_system->cur_path.c_str(), "/") == 0);
+    newNode->index_i = fileIndex;
     IndexItem indexItem = file_system->disk->indexItems[fileIndex];
+
     char *buffer = (char *) malloc(BLOCK_SIZE);
     printf("upload file index: %d\n", fileIndex);
     int j = 0;
@@ -404,5 +409,39 @@ int fs_download(const char *file_name, const char *output_path) {
     printf("download size: %d\n", j);
 #endif
     fclose(output_file);
+    return 0;
+}
+
+int fs_tree(FileTreeNode *node, int level) {
+    FileTreeNode *p = node->child;
+    while (p != nullptr) {
+        char *backupDirName;
+        int i;
+        for (i = 0; i < level; i++) {
+            printf("|");
+            printf("     ");
+        }
+        printf("|--- ");
+        printf("%s\n", p->file_name);
+
+        if (p->file_type == 'd') {
+            //当前目录长度
+            int curDirentNameLen = strlen(node->file_name) + 1;
+
+            //备份
+            backupDirName = (char *) malloc(curDirentNameLen);
+            memset(backupDirName, 0, curDirentNameLen);
+            memcpy(backupDirName, node->file_name, curDirentNameLen);
+
+
+            fs_tree(p, level + 1);
+
+            memcpy(node->file_name, backupDirName, curDirentNameLen);
+            free(backupDirName);
+            backupDirName = nullptr;
+        }
+
+        p = p->sibling;
+    }
     return 0;
 }

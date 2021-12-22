@@ -46,4 +46,6 @@ int cmd_upload(const int *argc, char **argv);
 
 int cmd_download(const int *argc, char **argv);
 
+int cmd_tree(const int *argc, char **argv);
+
 #endif

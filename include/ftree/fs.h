@@ -61,6 +61,8 @@ int fs_cat(const char *path, const char *file_name);
 
 int fs_upload(const char *file_name);
 
+int fs_tree(FileTreeNode* node, int level);
+
 int fs_download(const char *file_name, const char *output_path);
 
 void ft_to_arr(FileTreeNode *root, FileTreeNode *arr, int index);
