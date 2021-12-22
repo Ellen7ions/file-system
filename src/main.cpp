@@ -3,10 +3,16 @@
 #include "ftree/gui.h"
 
 
-int main() {
+int main(int argc, char **argv) {
 
     // file_system = new FileSystem("test.bin", DISK_SIZE, CREATE);
-    file_system = new FileSystem("test.bin", DISK_SIZE, READ);
+    uint8_t mode;
+    if (argc == 1) {
+        mode = READ;
+    } else {
+        mode = atoi(argv[1]);
+    }
+    file_system = new FileSystem("test.bin", DISK_SIZE, mode);
 
     gui_top(nullptr);
 

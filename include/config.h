@@ -7,6 +7,8 @@
 
 #define DEBUG
 
+#define TWO_LEVEL_INDEX
+
 #define BLOCK_CNT   400
 #define BLOCK_SIZE  1024
 

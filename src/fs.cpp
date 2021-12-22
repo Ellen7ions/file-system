@@ -352,12 +352,23 @@ int fs_upload(const char *file_name) {
     printf("upload file index: %d\n", fileIndex);
     int j = 0;
     for (int i = 0; indexItem.psyAddr[i] != 0; i++) {
+#ifdef TWO_LEVEL_INDEX
+        if (i == 10 && j < file_size) {
+            indexItem = file_system->disk->indexItems[indexItem.psyAddr[10]];
+            i = 0;
+        }
+#endif
+
         memset(buffer, 0, BLOCK_SIZE);
         fread(buffer, BLOCK_SIZE, 1, file);
-        printf("i = %d, psy = %d\n", i, indexItem.psyAddr[i]);
+        // printf("i = %d, psy = %d\n", i, indexItem.psyAddr[i]);
         while (j < file_size) {
-            file_system->disk->fileBlockManager->writeBlock(indexItem.psyAddr[i], (j % BLOCK_SIZE),
-                                                            buffer + (j % BLOCK_SIZE), 1);
+            file_system->disk->fileBlockManager->writeBlock(
+                    indexItem.psyAddr[i],
+                    (j % BLOCK_SIZE),
+                    buffer + (j % BLOCK_SIZE),
+                    1
+            );
             j++;
             if (j % BLOCK_SIZE == 0) break;
         }
@@ -391,12 +402,23 @@ int fs_download(const char *file_name, const char *output_path) {
 
     int j = 0;
     for (int i = 0; indexItem.psyAddr[i] != 0; i++) {
+#ifdef TWO_LEVEL_INDEX
+        if (i == 10 && j < file_size) {
+            // printf("i = %d, psy = %d\n", i, indexItem.psyAddr[i]);
+            indexItem = file_system->disk->indexItems[indexItem.psyAddr[10]];
+            i = 0;
+        }
+#endif
+        printf("%d\n", indexItem.psyAddr[i]);
         memset(buffer, 0, BLOCK_SIZE);
-        printf("i = %d, psy = %d\n", i, indexItem.psyAddr[i]);
         while (j < file_size) {
-            file_system->disk->fileBlockManager->readBlock(indexItem.psyAddr[i], (j % BLOCK_SIZE),
-                                                           buffer + (j % BLOCK_SIZE), 1);
-            fwrite(buffer + (j % BLOCK_SIZE), 1, 1, output_file);
+            file_system->disk->fileBlockManager->readBlock(
+                    indexItem.psyAddr[i],
+                    (j % BLOCK_SIZE),
+                    buffer,
+                    1
+            );
+            fwrite(buffer, 1, 1, output_file);
             j++;
             if (j % BLOCK_SIZE == 0) break;
         }

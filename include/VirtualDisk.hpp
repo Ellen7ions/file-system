@@ -43,7 +43,7 @@ public:
 
     void diskClose();
 
-    void writeBack();
+    void writeBack() const;
 
     uint32_t mallocBlock();
 

@@ -30,10 +30,12 @@ VirtualDisk::VirtualDisk(std::string filename, uint32_t size, uint8_t mode) {
 
         // IndexBlock
         this->indexItems = (IndexItem *) malloc(BLOCK_SIZE * INDEX_BLOCK_CNT);
-        for (int i = 0; i < this->indexItemCnt; i += (BLOCK_SIZE / sizeof(IndexItem))) {
-            memset(this->indexItems + i, 0, BLOCK_SIZE);
-            this->fileBlockManager->readBlock(12 + (i / (BLOCK_SIZE / sizeof(IndexItem))), 0, this->indexItems + i,
-                                              BLOCK_SIZE);
+        for (int i = 0; i < this->indexItemCnt; i++) {
+            memset(this->indexItems + i, 0, sizeof(IndexItem));
+            this->fileBlockManager->readBlock(12 + (i / (BLOCK_SIZE / sizeof(IndexItem))),
+                                              (i % (BLOCK_SIZE / sizeof(IndexItem))) * sizeof(IndexItem),
+                                              this->indexItems + i,
+                                              sizeof(IndexItem));
         }
     } else if (mode == CREATE) {
         formatDisk();
@@ -70,17 +72,18 @@ void VirtualDisk::initDisk() {
     this->emptyCnt = this->blockTotalCnt;
 }
 
-void VirtualDisk::writeBack() {
+void VirtualDisk::writeBack() const {
     // LeadBlock
     // this->fileBlockManager->flushBlock(0);
 
     // SuperBlock
     // this->fileBlockManager->writeData(1, this->superBlock, sizeof(SuperBlock));
+    this->fileBlockManager->flushBlock(1);
     this->fileBlockManager->writeBlock(1, 0, this->superBlock, sizeof(SuperBlock));
 
     // DirBlock
+    for (int i = 0; i < 10; i++) this->fileBlockManager->flushBlock(2 + i);
     for (int i = 0; i < this->dirItemCnt; i++) {
-        // printf("%u\n", i / (BLOCK_SIZE / sizeof(DirItem)));
         this->fileBlockManager->writeBlock(2 + (i / (BLOCK_SIZE / sizeof(DirItem))),
                                            (i % (BLOCK_SIZE / sizeof(DirItem))) * sizeof(DirItem),
                                            this->dirItems + i,
@@ -88,6 +91,7 @@ void VirtualDisk::writeBack() {
     }
 
     // IndexBlock
+    for (int i = 0; i < 20; i++) this->fileBlockManager->flushBlock(12 + i);
     for (int i = 0; i < this->indexItemCnt; i++) {
         this->fileBlockManager->writeBlock(12 + (i / (BLOCK_SIZE / sizeof(IndexItem))),
                                            (i % (BLOCK_SIZE / sizeof(IndexItem))) * sizeof(IndexItem),
@@ -202,22 +206,36 @@ uint32_t VirtualDisk::createFileIndex(IndexItem *indexItem) {
         if (block_cnt <= 10) {
             for (int i = 0; i < block_cnt; i++) locAddrs[top++] = mallocBlock();
         } else {
+#ifndef TWO_LEVEL_INDEX
             std::cout << "This file is so big! XD" << std::endl;
+#else
+            for (int i = 0; i < 10; i++) locAddrs[top++] = mallocBlock();
+            IndexItem *another = indexItemInit(indexItem->fileType, indexItem->fileLength - 10 * BLOCK_SIZE);
+            uint32_t index = createFileIndex(another);
+            if (index == 0) {
+                std::cout << "This file is so big! XD" << std::endl;
+                return 0;
+            }
+            locAddrs[top++] = index;
+#endif
         }
     }
 
     int32_t freeIndex;
-    for (freeIndex = 0; freeIndex < this->indexItemCnt; freeIndex++) {
+    for (freeIndex = 1; freeIndex < this->indexItemCnt; freeIndex++) {
         if (this->indexItems[freeIndex].fileType == 0) {
             for (int i = 0; i < top; i++) {
                 indexItem->psyAddr[i] = locAddrs[i];
-                std::cout << "alloc block index: " << locAddrs[i] << "\n";
+                // std::cout << i << " alloc block index: " << locAddrs[i] << "\n";
             }
 
             memcpy(this->indexItems + freeIndex, indexItem, sizeof(IndexItem));
-            this->fileBlockManager->writeBlock(12 + (freeIndex / (BLOCK_SIZE / sizeof(IndexItem))),
-                                               (freeIndex % (BLOCK_SIZE / sizeof(IndexItem))) * sizeof(IndexItem),
-                                               indexItem, sizeof(IndexItem));
+            this->fileBlockManager->writeBlock(
+                    12 + (freeIndex / (BLOCK_SIZE / sizeof(IndexItem))),
+                    (freeIndex % (BLOCK_SIZE / sizeof(IndexItem))) * sizeof(IndexItem),
+                    indexItem,
+                    sizeof(IndexItem)
+            );
             return freeIndex;
         }
     }
