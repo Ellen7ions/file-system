@@ -230,7 +230,7 @@ int fs_vim(const char *path, const char *file_name) {
 
     printf("[Vim]:\n");
 
-    uint32_t blockIndex = file_system->disk->getFileFirstBlockIndex(path_node->index_i);
+    uint32_t blockIndex = file_system->disk->getFileFirstBlockIndex(p->index_i);
 
     char *buffer = (char *) malloc(sizeof(char) * 512);
     memset(buffer, 0, sizeof(char) * 512);
@@ -240,8 +240,8 @@ int fs_vim(const char *path, const char *file_name) {
         // printf("%d\n", ptr);
         gets(buffer);
         if (strcmp(buffer, "q") == 0) {
-            buffer[0] = EOF;
-            file_system->disk->fileBlockManager->writeBlock(blockIndex, ptr, buffer, sizeof(char));
+            // buffer[0] = EOF;
+            // file_system->disk->fileBlockManager->writeBlock(blockIndex, ptr, buffer, sizeof(char));
             break;
         }
         uint32_t len = strlen(buffer);
@@ -265,28 +265,55 @@ int fs_cat(const char *path, const char *file_name) {
         p = p->sibling;
     }
     return 1;
-
     found:
-    uint32_t blockIndex = file_system->disk->getFileFirstBlockIndex(path_node->index_i);
 
-    char *buffer = (char *) malloc(sizeof(char) * 512);
-    memset(buffer, 0, sizeof(char) * 512);
-    uint32_t ptr = 0;
-    while (true) {
-        memset(buffer, 0, 512 * sizeof(char));
-        file_system->disk->fileBlockManager->readBlock(blockIndex, ptr, buffer, sizeof(char) * 512);
-        if (strlen(buffer) == 0) break;
-        for (int i = 0; i < 512; i++) {
-            if (buffer[i] == EOF) return 0;
-            putchar(buffer[i]);
-            ptr += 1;
+    IndexItem indexItem = file_system->disk->indexItems[p->index_i];
+    char *buffer = (char *) malloc(BLOCK_SIZE);
+
+    uint32_t file_size = indexItem.fileLength;
+
+    int j = 0;
+    for (int i = 0; indexItem.psyAddr[i] != 0; i++) {
+        memset(buffer, 0, BLOCK_SIZE);
+        printf("i = %d, psy = %d\n", i, indexItem.psyAddr[i]);
+        while (j < file_size) {
+            file_system->disk->fileBlockManager->readBlock(indexItem.psyAddr[i], (j % BLOCK_SIZE),
+                                                           buffer + (j % BLOCK_SIZE), 1);
+            // fwrite(buffer + (j % BLOCK_SIZE), 1, 1, output_file);
+            putchar(buffer[j %  BLOCK_SIZE]);
+            j++;
+            if (j % BLOCK_SIZE == 0) break;
         }
-        puts(buffer);
-        if (ptr >= 1024) {
-            blockIndex += 1;
-            ptr -= 1024;
+        if (j >= file_size) {
+            goto finished;
         }
     }
+    finished:
+#ifdef DEBUG
+    printf("\ncat size: %d\n", j);
+#endif
+
+    // found:
+    // uint32_t blockIndex = file_system->disk->getFileFirstBlockIndex(p->index_i);
+    //
+    // char *buffer = (char *) malloc(sizeof(char) * 512);
+    // memset(buffer, 0, sizeof(char) * 512);
+    // uint32_t ptr = 0;
+    // while (true) {
+    //     memset(buffer, 0, 512 * sizeof(char));
+    //     file_system->disk->fileBlockManager->readBlock(blockIndex, ptr % (BLOCK_SIZE), buffer, sizeof(char) * 512);
+    //     if (strlen(buffer) == 0) break;
+    //     for (int i = 0; i < 512; i++) {
+    //         if (buffer[i] == EOF) return 0;
+    //         putchar(buffer[i]);
+    //         ptr += 1;
+    //     }
+    //     puts(buffer);
+    //     if (ptr >= 1024) {
+    //         blockIndex += 1;
+    //         ptr -= 1024;
+    //     }
+    // }
     return 0;
 }
 
