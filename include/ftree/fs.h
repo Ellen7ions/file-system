@@ -59,6 +59,10 @@ int fs_vim(const char *path, const char *file_name);
 
 int fs_cat(const char *path, const char *file_name);
 
+int fs_upload(const char *file_name);
+
+int fs_download(const char *file_name, const char *output_path);
+
 void ft_to_arr(FileTreeNode *root, FileTreeNode *arr, int index);
 
 void arr_to_ft(FileTreeNode **root, FileTreeNode *arr, int index, int arr_size, FileTreeNode *parent);

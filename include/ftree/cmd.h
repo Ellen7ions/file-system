@@ -42,4 +42,8 @@ int cmd_vim(const int *argc, char **argv);
 
 int cmd_cat(const int *argc, char **argv);
 
+int cmd_upload(const int *argc, char **argv);
+
+int cmd_download(const int *argc, char **argv);
+
 #endif

@@ -289,3 +289,93 @@ int fs_cat(const char *path, const char *file_name) {
     }
     return 0;
 }
+
+uint32_t get_file_size(FILE *file) {
+    fseek(file, 0, SEEK_END);
+    uint32_t res = ftell(file);
+    fseek(file, 0, SEEK_SET);
+    return res;
+}
+
+int fs_upload(const char *file_name) {
+    FILE *file = fopen(file_name, "rb");
+    if (file == nullptr)
+        return 3;
+
+    FileTreeNode *path_node = fs_loc_node(file_system->cur_node->file_name);
+    if (path_node == nullptr) return -1;
+    FileTreeNode *p = path_node->child;
+    while (p != nullptr) {
+        if (strcmp(p->file_name, file_name) == 0) return 1;
+        p = p->sibling;
+    }
+
+    ftn_add_node(file_system->cur_node, ftn_new(file_name, 'f', nullptr));
+
+    uint32_t file_size = get_file_size(file);
+    uint32_t fileIndex = file_system->disk->makeFile(file_system->cur_node->index_i, (char *) file_name, file_size,
+                                                     strcmp(file_system->cur_path.c_str(), "/") == 0);
+    IndexItem indexItem = file_system->disk->indexItems[fileIndex];
+    char *buffer = (char *) malloc(BLOCK_SIZE);
+    printf("upload file index: %d\n", fileIndex);
+    int j = 0;
+    for (int i = 0; indexItem.psyAddr[i] != 0; i++) {
+        memset(buffer, 0, BLOCK_SIZE);
+        fread(buffer, BLOCK_SIZE, 1, file);
+        printf("i = %d, psy = %d\n", i, indexItem.psyAddr[i]);
+        while (j < file_size) {
+            file_system->disk->fileBlockManager->writeBlock(indexItem.psyAddr[i], (j % BLOCK_SIZE),
+                                                            buffer + (j % BLOCK_SIZE), 1);
+            j++;
+            if (j % BLOCK_SIZE == 0) break;
+        }
+        if (j >= file_size) {
+            goto finished;
+        }
+    }
+    finished:
+#ifdef DEBUG
+    printf("upload size: %d\n", j);
+#endif
+    fclose(file);
+    return 0;
+}
+
+int fs_download(const char *file_name, const char *output_path) {
+    FILE *output_file = fopen(output_path, "wb");
+    FileTreeNode *p = file_system->cur_node->child;
+    while (p != nullptr) {
+        if (strcmp(p->file_name, file_name) == 0) goto found;
+        p = p->sibling;
+    }
+    return 1;
+    found:
+    IndexItem indexItem = file_system->disk->indexItems[p->index_i];
+    char *buffer = (char *) malloc(BLOCK_SIZE);
+
+    printf("download file index: %d\n", p->index_i);
+
+    uint32_t file_size = indexItem.fileLength;
+
+    int j = 0;
+    for (int i = 0; indexItem.psyAddr[i] != 0; i++) {
+        memset(buffer, 0, BLOCK_SIZE);
+        printf("i = %d, psy = %d\n", i, indexItem.psyAddr[i]);
+        while (j < file_size) {
+            file_system->disk->fileBlockManager->readBlock(indexItem.psyAddr[i], (j % BLOCK_SIZE),
+                                                           buffer + (j % BLOCK_SIZE), 1);
+            fwrite(buffer + (j % BLOCK_SIZE), 1, 1, output_file);
+            j++;
+            if (j % BLOCK_SIZE == 0) break;
+        }
+        if (j >= file_size) {
+            goto finished;
+        }
+    }
+    finished:
+#ifdef DEBUG
+    printf("download size: %d\n", j);
+#endif
+    fclose(output_file);
+    return 0;
+}

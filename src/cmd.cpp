@@ -14,9 +14,11 @@ char *fs_cmds[] = {
         (char *) "quit",
         (char *) "vim",
         (char *) "cat",
+        (char *) "upload",
+        (char *) "download"
 };
 
-int cmds_len = 13;
+int cmds_len = 15;
 
 int (*sys_cmds[])(const int *argc, char **argv) = {
         cmd_mkdir,
@@ -31,7 +33,9 @@ int (*sys_cmds[])(const int *argc, char **argv) = {
         cmd_menu,
         cmd_quit,
         cmd_vim,
-        cmd_cat
+        cmd_cat,
+        cmd_upload,
+        cmd_download,
 };
 
 int cmd_mkdir(const int *argc, char **argv) {
@@ -220,6 +224,44 @@ int cmd_cat(const int *argc, char **argv) {
     char file_path[64];
     split_path(arg_path, base_path, file_path);
     int flag = fs_cat(base_path, file_path);
+    switch (flag) {
+        case -1:
+            printf("Error path!\n");
+            break;
+        case 1:
+            printf("File name doesn't exists!\n\n");
+            break;
+        default:
+            break;
+    }
+    return flag;
+}
+
+int cmd_upload(const int *argc, char **argv) {
+    if (*argc == 0) return -1;
+    char *file_name = argv[1];
+    int flag = fs_upload(file_name);
+    switch (flag) {
+        case -1:
+            printf("Error path!\n");
+            break;
+        case 1:
+            printf("File name exists!\n\n");
+            break;
+        case 3:
+            printf("Open file failed!\n\n");
+            break;
+        default:
+            break;
+    }
+    return flag;
+}
+
+int cmd_download(const int *argc, char **argv) {
+    if (*argc == 0) return -1;
+    char *file_name = argv[1];
+    char *output_path = argv[2];
+    int flag = fs_download(file_name, output_path);
     switch (flag) {
         case -1:
             printf("Error path!\n");
