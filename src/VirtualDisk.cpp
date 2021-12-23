@@ -19,6 +19,8 @@ VirtualDisk::VirtualDisk(std::string filename, uint32_t size, uint8_t mode) {
         auto *data = (uint8_t *) malloc(BLOCK_SIZE);
         this->fileBlockManager->readBlock(1, 0, data, BLOCK_SIZE);
         this->superBlock = superBlockLoad(data);
+        this->blockTotalCnt = this->superBlock->blocks_total_cnt;
+        this->emptyCnt = this->superBlock->empty_cnt;
 
         // DirBlock
         this->dirItems = (DirItem *) malloc(BLOCK_SIZE * DIR_BLOCK_CNT);
@@ -69,7 +71,7 @@ void VirtualDisk::formatDisk() {
 
 void VirtualDisk::initDisk() {
     this->blockTotalCnt = this->diskTotalSize / BLOCK_SIZE;
-    this->emptyCnt = this->blockTotalCnt;
+    this->emptyCnt = this->blockTotalCnt - 51;
 }
 
 void VirtualDisk::writeBack() const {
@@ -166,6 +168,8 @@ void VirtualDisk::displayBlock(bool onlyStack) {
 VirtualDisk::~VirtualDisk() = default;
 
 uint32_t VirtualDisk::mallocBlock() {
+    this->emptyCnt -= 1;
+
     uint32_t top_block_num = this->superBlock->stack[50 - this->superBlock->cur_stack_top];
     if (this->superBlock->cur_stack_top == 1) {
         this->fileBlockManager->readBlock(top_block_num, 0, &(this->superBlock->cur_stack_top), sizeof(uint32_t));
@@ -182,6 +186,7 @@ void VirtualDisk::diskClose() {
 }
 
 void VirtualDisk::freeBlock(uint32_t new_sub) {
+    this->emptyCnt += 1;
     this->fileBlockManager->flushBlock(new_sub);
     if (this->superBlock->cur_stack_top == 50) {
         this->fileBlockManager->writeBlock(new_sub, 0, &this->superBlock->cur_stack_top, sizeof(uint32_t));

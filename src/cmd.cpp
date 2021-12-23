@@ -16,10 +16,11 @@ char *fs_cmds[] = {
         (char *) "cat",
         (char *) "upload",
         (char *) "download",
-        (char *) "tree"
+        (char *) "tree",
+        (char *) "info"
 };
 
-int cmds_len = 16;
+int cmds_len = 17;
 
 int (*sys_cmds[])(const int *argc, char **argv) = {
         cmd_mkdir,
@@ -37,7 +38,8 @@ int (*sys_cmds[])(const int *argc, char **argv) = {
         cmd_cat,
         cmd_upload,
         cmd_download,
-        cmd_tree
+        cmd_tree,
+        cmd_info
 };
 
 int cmd_mkdir(const int *argc, char **argv) {
@@ -286,5 +288,34 @@ int cmd_download(const int *argc, char **argv) {
 int cmd_tree(const int *argc, char **argv) {
     printf("%s\n", file_system->cur_node->file_name);
     fs_tree(file_system->cur_node, 0);
+    return 0;
+}
+
+int cmd_info(const int *argc, char **argv) {
+    if (*argc == 1) {
+        printf("Disk Size: %d B\n", file_system->disk->diskTotalSize);
+        printf("Total disk block: %d\n", file_system->disk->blockTotalCnt);
+        printf("Remaining disk block: %d\n", file_system->disk->emptyCnt);
+    } else {
+        char *arg_path = argv[1];
+        char base_path[64];
+        char file_path[64];
+        split_path(arg_path, base_path, file_path);
+        // int flag = fs_cat(base_path, file_path);
+        FileTreeNode *path_node = fs_loc_node(base_path);
+        if (path_node == nullptr) return -1;
+        FileTreeNode *p = path_node->child;
+        while (p != nullptr) {
+            if (strcmp(p->file_name, file_path) == 0) goto found;
+            p = p->sibling;
+        }
+        return 1;
+        found:
+        IndexItem item = file_system->disk->indexItems[p->index_i];
+        printf("File Name: %s\n", p->file_name);
+        printf("File Size: %d B\n", item.fileLength);
+        printf("File Type: %s\n", item.fileType == 'f' ? "File" : "Directory");
+        return 0;
+    }
     return 0;
 }

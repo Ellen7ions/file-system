@@ -48,4 +48,6 @@ int cmd_download(const int *argc, char **argv);
 
 int cmd_tree(const int *argc, char **argv);
 
+int cmd_info(const int *argc, char **argv);
+
 #endif

@@ -74,6 +74,8 @@ public:
 
     uint32_t getFileFirstBlockIndex(uint32_t index_i) const;
 
+
+
     // void removeFile(uint32_t parentIndex, char *dirName, bool atRootDur = false);
 
     // uint16_t dirBlockFindPath(uint32_t index, std::vector<std::string> vec, int subIndex);
