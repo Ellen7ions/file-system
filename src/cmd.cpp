@@ -68,13 +68,13 @@ int cmd_rmdir(const int *argc, char **argv) {
     char base_path[64];
     char dir_path[64];
     split_path(arg_path, base_path, dir_path);
-    int flag = fs_rmdir(dir_path, 0);
+    int flag = fs_rmdir(dir_path, (*argc == 3) && (strcmp(argv[2], "-f") == 0));
     switch (flag) {
         case -1:
             printf("Error path!\n");
             break;
         case 1:
-            printf("Dir name doesn't exists!\n");
+            printf("Dir name doesn't exists or Dir is not empty!\n");
             break;
         default:
             break;
@@ -162,7 +162,7 @@ int cmd_reload(const int *argc, char **argv) {
 int cmd_menu(const int *argc, char **argv) {
     if (*argc == 0) return -1;
 #define SHOW_LINE(CMD, INTRO) printf("%-15s\t%-60s\n", #CMD, #INTRO)
-    SHOW_LINE( ,  );
+    SHOW_LINE(,);
     SHOW_LINE([rmdir], Remove a directory.(rmdir dir_name));
     SHOW_LINE([mkdir], Make a directory.(mkdir dir_name));
     SHOW_LINE([cd], Cd a directory.(cd dir_name));

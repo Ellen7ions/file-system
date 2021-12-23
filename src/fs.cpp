@@ -29,7 +29,11 @@ FileTreeNode *fs_loc_node(const char *path) {
 
     FileTreeNode *p;
     if (path[0] == '/') p = file_system->root;
-    else p = file_system->cur_node;
+    else if (strcmp(file_system->cur_node->file_name, path) == 0)
+        p = file_system->cur_node->child;
+    else
+        p = file_system->cur_node;
+    // p = file_system->cur_node;
 
     int i = 0;
     while (i < path_level && strcmp(p->file_name, paths[i]) != 0) {
